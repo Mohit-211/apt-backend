@@ -3,116 +3,106 @@ const helmet = require("helmet");
 const cors = require("cors");
 const compression = require("compression");
 const httpStatus = require("http-status");
+const path = require("path");
 
 const config = require("./src/config/config.js");
 const routes = require("./src/routes/v1");
 const morgan = require("./src/config/morgan.js");
 const { authLimiter } = require("./src/middlewares/rateLimiter.js");
-const cron = require('node-cron');
-require("./src/schedular/subscriptionOperation.js")
-
-
 const ApiError = require("./src/utils/ApiError.js");
-const path = require("path");
-const app = express();
 const upload = require("./src/config/multer.js");
+
 require("./src/models");
+require("./src/schedular/subscriptionOperation.js");
 
+const app = express();
 
-const allowedOrigins = require("./src/helpers/accessDomains.js");
+const PUBLIC_DIR = path.resolve(__dirname, "./public");
+
+/*
+ * Security headers
+ */
+app.use(helmet());
+
+/*
+ * CORS
+ *
+ * Allowed origins are managed centrally through config/accessDomains.js.
+ */
 app.use(
   cors({
-    origin: [
-      "http://127.0.0.1:5500",
-      "http://localhost:3002",
-      "http://localhost:3001",
-      "http://localhost:3000",
-      "https://automatedpricingtool.io",
-      "https://admin.automatedpricingtool.io",
-      "https://node.filmdin.com",
-      "http://node.filmdin.com",
-      "https://data.mypageseo.com",
-      "http://data.mypageseo.com",
-      "https://test.automatedpricingtool.io"
-
-    ],
-    methods: "GET,POST,PUT,DELETE",
+    origin: config.accessDomains.split(","),
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
-  })
+  }),
 );
 
-app.use(function (req, res, next) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "*");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-  next();
-});
-
-// ----------------------------------------
-// var https = require("https");
-// var fs = require('fs');
-// var options = {
-//     key: fs.readFileSync('/etc/ssl/virtualmin/168899228910356/ssl.key'),
-//     cert: fs.readFileSync('/etc/ssl/virtualmin/168899228910356/ssl.cert'),
-// };
-
+/*
+ * Logging
+ */
 if (config.env !== "test") {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
 }
 
-cron.schedule('* * * * *', () => {
-  console.log('Hello, I am still Running.......');
-});
-
-const PUBLIC_DIR = path.resolve(__dirname, "./public");
-app.use("/images", express.static(`${PUBLIC_DIR}/uploads/images`));
-app.use("/videos", express.static(`${PUBLIC_DIR}/uploads/videos`));
-app.use("/gifs", express.static(`${PUBLIC_DIR}/uploads/gifs`));
-app.use("/docs", express.static(`${PUBLIC_DIR}/uploads/docs`));
-app.use("/songs", express.static(`${PUBLIC_DIR}/uploads/songs`));
-
-// set security HTTP headers
-app.use(helmet());
-
-// parse json request body
+/*
+ * Request parsing
+ */
 app.use(express.json());
-
-// parse urlencoded request body
 app.use(express.urlencoded({ extended: true }));
 
-// gzip compression
-// app.use(compression());
+/*
+ * Compression
+ */
+app.use(compression());
 
-// Added multer with all v1 api routes
-app.use("/api/v1", upload, routes);
+/*
+ * Static files
+ */
+app.use(express.static(PUBLIC_DIR));
 
+app.use("/images", express.static(path.join(PUBLIC_DIR, "uploads/images")));
+app.use("/videos", express.static(path.join(PUBLIC_DIR, "uploads/videos")));
+app.use("/gifs", express.static(path.join(PUBLIC_DIR, "uploads/gifs")));
+app.use("/docs", express.static(path.join(PUBLIC_DIR, "uploads/docs")));
+app.use("/songs", express.static(path.join(PUBLIC_DIR, "uploads/songs")));
 
-app.get("/api/healthcheck", function (req, res) {
-  let data = {
+/*
+ * Health check
+ */
+app.get("/api/healthcheck", (req, res) => {
+  res.status(200).json({
     response: "ok",
-  };
-  res.status(200).send(data);
+  });
 });
 
-app.get("/test", (req, res, next) => {
+/*
+ * Test endpoint
+ */
+app.get("/test", (req, res) => {
   res.status(200).send("Hello World !!");
 });
 
-app.use(express.static(PUBLIC_DIR));
-
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 1;
-
-// limit repeated failed requests to auth endpoints
+/*
+ * Authentication rate limiting
+ */
 if (config.env === "production") {
-  app.use("/v1/auth", authLimiter);
+  app.use("/api/v1/auth", authLimiter);
 }
 
+/*
+ * API routes
+ */
+app.use("/api/v1", upload, routes);
 
-
-// send back a 404 error for any unknown api request
+/*
+ * 404 handler
+ */
 app.use((req, res, next) => {
   next(new ApiError(httpStatus.NOT_FOUND, "Not found"));
 });
 
+/*
+ * Export Express application
+ */
 module.exports = app;
