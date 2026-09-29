@@ -1,0 +1,15 @@
+{
+  "apps": [
+    {
+      "name": "apt-backend",
+      "script": "index.js",
+      "instances": "max",
+      "autorestart": true,
+      "watch": false,
+      "time": true,
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}
