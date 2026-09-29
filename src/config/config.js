@@ -2,8 +2,10 @@ const dotenv = require("dotenv");
 const path = require("path");
 const Joi = require("joi");
 
+const ROOT_DIR = path.resolve(__dirname, "../..");
+
 dotenv.config({
-  path: path.join(__dirname, "../../.env"),
+  path: path.join(ROOT_DIR, ".env"),
 });
 
 const envVarsSchema = Joi.object({
@@ -90,6 +92,9 @@ const envVarsSchema = Joi.object({
 
   // OpenAI
   OPENAI_KEY: Joi.string().allow(""),
+
+  // Uploads storage (absolute, or relative to project root)
+  STORAGE_DIR: Joi.string().default("../storage"),
 }).unknown(true);
 
 const { value: envVars, error } = envVarsSchema
@@ -187,4 +192,6 @@ module.exports = {
     envVars.STRIPE_WEBHOOK_SECRET_CUSTOMER_INVOICE_PRICE,
 
   OPENAI_KEY: envVars.OPENAI_KEY,
+
+  storageDir: path.resolve(ROOT_DIR, envVars.STORAGE_DIR),
 };

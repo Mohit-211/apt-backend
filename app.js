@@ -12,6 +12,8 @@ const { authLimiter } = require("./src/middlewares/rateLimiter.js");
 const ApiError = require("./src/utils/ApiError.js");
 const upload = require("./src/config/multer.js");
 
+const { storageDir } = config;
+
 require("./src/models");
 require("./src/schedular/subscriptionOperation.js");
 
@@ -61,11 +63,11 @@ app.use(compression());
  */
 app.use(express.static(PUBLIC_DIR));
 
-app.use("/images", express.static(path.join(PUBLIC_DIR, "uploads/images")));
-app.use("/videos", express.static(path.join(PUBLIC_DIR, "uploads/videos")));
-app.use("/gifs", express.static(path.join(PUBLIC_DIR, "uploads/gifs")));
-app.use("/docs", express.static(path.join(PUBLIC_DIR, "uploads/docs")));
-app.use("/songs", express.static(path.join(PUBLIC_DIR, "uploads/songs")));
+app.use("/images", express.static(path.join(storageDir, "images")));
+app.use("/videos", express.static(path.join(storageDir, "videos")));
+app.use("/gifs", express.static(path.join(storageDir, "gifs")));
+app.use("/docs", express.static(path.join(storageDir, "docs")));
+app.use("/songs", express.static(path.join(storageDir, "songs")));
 
 /*
  * Health check

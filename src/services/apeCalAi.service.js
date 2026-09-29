@@ -3,6 +3,7 @@ const XLSX = require("xlsx");
 const fs = require("fs");
 const path = require("path");
 const ApiError = require("../utils/ApiError");
+const { storageDir } = require("../config/config");
 const openai = require('../config/openAi');
 const puppeteer = require("puppeteer");
 const { parseHtmlToDocxElements } = require("../utils/parseHTMLText");
@@ -192,7 +193,7 @@ async function createDocxFileFromHtml(rawProposal) {
             const year = currentDate.getFullYear();
             const formattedDate = `${day} ${month} ${year}`;
 
-            const logoPath = path.join(__dirname, "../../public/uploads/images/logo.png");
+            const logoPath = path.join(storageDir, "images/logo.png");
             const logoImage = fs.readFileSync(logoPath);
             const headerChildren = [
                 new Paragraph({
@@ -287,8 +288,8 @@ async function createDocxFileFromHtml(rawProposal) {
 
             const buffer = await Packer.toBuffer(doc);
             const outputPath = path.join(
-                __dirname,
-                "../../public/uploads/docs",
+                storageDir,
+                "docs",
                 `docs-${Date.now()}.docx`
             );
             fs.writeFileSync(outputPath, buffer);
@@ -334,7 +335,7 @@ const downloadProposalDoc = async (body) => {
 async function createDocxFileFromHtmlPuppeter(htmlContent) {
     try {
         try {
-            const pdfPath = path.join(__dirname, "../../public/uploads/docs/", "advance-price-proposal.pdf");
+            const pdfPath = path.join(storageDir, "docs", "advance-price-proposal.pdf");
             await generatePdfFromHtml(htmlContent, pdfPath);
             return pdfPath
         } catch (error) {
